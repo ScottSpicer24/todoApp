@@ -1,6 +1,7 @@
 import { View, Text, Button, StyleSheet, TextInput, ActivityIndicator} from 'react-native'
 import React, {useEffect, useState} from 'react'
 import { useNavigation } from '@react-navigation/native';
+import { getCurrentUser } from 'aws-amplify/auth';
 
 const List = ({navigation} : any) => {
     //const navigation = useNavigation(); // use navigation hook? No
@@ -8,16 +9,31 @@ const List = ({navigation} : any) => {
     const [todos, setTodos] = useState<any[]>([]);
     const [todo, setTodo] = useState('');
     const [err, setErr] = useState(false);
-    const username = 'Scott';
+
+
+    async function currentAuthenticatedUser() {
+      try {
+        const { username, userId, signInDetails } = await getCurrentUser();
+        console.log(`The username: ${username}`);
+        console.log(`The userId: ${userId}`);
+        console.log(`The signInDetails: ${signInDetails}`);
+        return username
+      } catch (err) {
+        console.log(err);
+      }
+    }
     
 
     useEffect(() => {
-      fetch("https://lkeqmh3fs5.execute-api.us-east-1.amazonaws.com/dev/todos")
+      const username = currentAuthenticatedUser()
+      fetch("https://lkeqmh3fs5.execute-api.us-east-1.amazonaws.com/dev/todos?username=" + username)
         .then(res => res.json())
         .then(
           (result) => {
             setIsLoading(false);
-            setTodos(result.body);
+            console.log(result.body);
+            setTodo(result.body);
+            setErr(false);
           }
         )
         .catch(
@@ -35,21 +51,19 @@ const List = ({navigation} : any) => {
       }
       
       if(err){
-        return <Text>Error</Text>
+        return <Text>Error in Fetch</Text>
       }
 
       if(todo === ""){
         return <Text>Blank todos Error</Text>
       }
-      
-      let items = JSON.parse(todo);
-      console.log(typeof items);
 
-
-
+      console.log(typeof todo);
+      //let text = todo.text;
+      //let compVal = todo.completed == '0' ? false : true ;
+      //console.log(compVal);
 
       return <Text>{todo}</Text>
-      
     }
 
     const saveDataAPI = async () => {
@@ -77,10 +91,10 @@ const List = ({navigation} : any) => {
     return (
       <View style={styles.container}>
         <View style={styles.form}>
+          {getContent()}
           <TextInput style={styles.input} placeholder='Add new new doo doo' onChangeText={(text: string) => setTodo(text)} value={todo} />
           <Button onPress={saveDataAPI} title="Add TODO" disabled={todo === ''}/>
           {/*<Button onPress={() => navigation.navigate('Details')} title="Add TODO" disabled={todo === ''}/>*/}
-          {/*getContent()*/}
         </View>
       </View>
     )
@@ -96,7 +110,7 @@ const styles = StyleSheet.create({
   },
   form: {
     marginVertical: 20,
-    flexDirection : 'row',
+    flexDirection : 'column',
     alignItems: 'center',
   },
   input: {
@@ -104,7 +118,9 @@ const styles = StyleSheet.create({
     height: 40,
     borderWidth: 1,
     borderRadius: 5,
-    padding: 10,
+    padding: 15,
+    marginBottom : 15,
+    marginTop : 10,
     marginRight: 15,
     backgroundColor: '#fff',
   }
